@@ -3,10 +3,10 @@ import os
 from fernet import Fernet
 from multiprocessing import Process
 from server_data import read_csv, save_csv
+from typing import Final
 
 local_socket = socket()
-_bufsize = 4096
-
+BUFSIZE: Final[int] = 4096
 def server_setup(ip: str, port: int):
     '''Setup for the the server'''
     if not os.path.isfile(f'{os.getcwd}/server_data/config/server.cfg'):
