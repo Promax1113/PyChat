@@ -4,15 +4,19 @@ from fernet import Fernet
 from multiprocessing import Process
 from server_data import read_csv, save_csv
 from typing import Final
+from configparser import ConfigParser
 
 local_socket = socket()
 BUFSIZE: Final[int] = 4096
-def server_setup(ip: str, port: int):
+def server_setup(ip: str = None, port: int = None):
     '''Setup for the the server'''
-    if not os.path.isfile(f'{os.getcwd}/server_data/config/server.cfg'):
-        with open(''): #Save ip
-            socket_test(ip, port)
     
+    if os.path.isfile(f'{os.getcwd()}/server_data/config/server.cfg'):
+        config = ConfigParser().read('/server_data/configs/default.cfg')
+        socket_test(config['DEFAULT']['ip'], config['DEFAULT']['port'])
+    else:
+        return 404
+            
 def socket_test(ip: str, port: int):
     global local_socket
     local_socket.bind((ip, port))
@@ -36,4 +40,4 @@ def create_child_process(client: object, target, extra_args):
 if __name__ == '__main__':
     success_tls = lambda x: 'Success' if x == 200 else 'Error!'
 
-    print(success_tls(server_setup('127.0.0.1', 585)))
+    print(success_tls(server_setup()))
