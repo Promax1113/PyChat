@@ -23,16 +23,17 @@ def socket_test(ip: str, port: int):
         test_s.connect((ip, port))
         local_socket.accept()
         test_s.sendall('200'.encode())
-        test_data = local_socket.recv(_bufsize).decode()
+        test_data = local_socket.recv(BUFSIZE).decode()
         if test_data == '200': return 200
-        else: raise NameError
+        else: raise Exception()
 
-    except NameError:
+    except:
         return 404
 
 def create_child_process(client: object, target, extra_args):
     '''Creates a child process that has a target and returns something.'''
 
 if __name__ == '__main__':
-    success_tls = lambda x: print('Success!') if x == 200 else print('Error!')
-    success_tls(server_setup('127.0.0.1'))
+    success_tls = lambda x: 'Success' if x == 200 else 'Error!'
+
+    print(success_tls(server_setup('127.0.0.1', 585)))
