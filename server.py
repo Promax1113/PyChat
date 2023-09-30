@@ -38,7 +38,7 @@ def socket_test(ip: str, port: int):
     test_data = client.recv(BUFSIZE).decode()
     client.close()
     if test_data == '200':
-        print(f'Serving on {ip}:{port}')
+        print(f'\nServing on {ip}:{port}\n')
         return 200
     
 
@@ -48,7 +48,7 @@ def create_child_process(client: object, target, extra_args):
 if __name__ == '__main__':
     
 
-    print(code_to_str(server_setup()))
+    print(code_to_str(int(server_setup())))
     print('Awaiting connections...')
     while True:
         time.sleep(5)
