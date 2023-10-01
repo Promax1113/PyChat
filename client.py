@@ -6,6 +6,11 @@ from time import sleep
 c = socket.socket()
 BUFSIZE: Final[int] = 8192
 
+def receive():
+    pass
+def send():
+    pass
+
 
 def code_to_str(code: int) -> None:
     '''Converts http code to letters.'''
