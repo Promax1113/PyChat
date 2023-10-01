@@ -27,7 +27,7 @@ def connect(ip: str, port: int):
         login()
     except ConnectionRefusedError:
         if tries <= 10:
-            print('Host possibly offline, now retrying...')
+            print('Host probably offline, now retrying...')
             tries += 1
             sleep(2)
             connect(ip, port)
