@@ -35,6 +35,7 @@ class Client:
             return None
         else:
             self.__client.close()
+            print('Closed connection!')
 
         await asyncio.sleep(1)
 
