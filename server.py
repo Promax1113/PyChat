@@ -1,10 +1,14 @@
 from socket import socket
-import os, json, security
+import os, json, security, time
 from fernet import Fernet
 from multiprocessing import Process
+import asyncio
 from server_data import read_csv, save_csv
 from typing import Final
 from configparser import RawConfigParser
+
+loop = asyncio.get_event_loop()
+
 
 class Client:
     def __init__(self, client: socket, address: tuple) -> None:
@@ -15,21 +19,29 @@ class Client:
         self.__is_authed = False
         self.__fernet_obj: Fernet = None
 
-    def login(self):
+    async def login(self):
         '''Processes the login of the client.'''
         self.__key = Fernet.generate_key().decode()
         self.__fernet_obj = Fernet(self.__key.encode())
-        self.__client.sendall(json.dumps({'sec': self.__key}).encode())
-        user_data = json.loads(self.__fernet_obj.decrypt(self.__client.recv(BUFSIZE))) # Login details in dict.
+        await loop.sock_sendall(self.__client, json.dumps({'sec': self.__key}).encode())
+        print('Sent key!')
+        data = await loop.sock_recv(self.__client, BUFSIZE)
+        user_data = json.loads(self.__fernet_obj.decrypt(data)) # Login details in dict.
         login_result = security.pass_check(user_data['username'], user_data['password'])
-        code_to_str(login_result)
+        await loop.sock_sendall(self.__client, code_to_str(login_result, print_o=False).encode())
+        print('sent!')
         if login_result == 200:
             self.__is_authed = True
+            return None
+        else:
+            self.__client.close()
 
-    def receive(self, decode):
+        await asyncio.sleep(1)
+
+    async def receive(self, decode):
         data = None
         while not data:
-            data = self.__client.recv(BUFSIZE)
+            data = await loop.sock_recv(self.__client, BUFSIZE)
         return data
 
         
@@ -38,10 +50,14 @@ local_socket = socket()
 BUFSIZE: Final[int] = 8192
 
 
-def code_to_str(code: int) -> None:
+def code_to_str(code: int, print_o = True):
     '''Converts http code to letters.'''
-    if code == 200: print('Successfully set up server!')
-    else: print('Error!')
+    if print == True:
+        if code == 200: print('Success!')
+        else: print('Error!')
+    else:
+        if code == 200: return 'Success!'
+        else: return 'Error!'
 
 
 def server_setup(ip: str = None, port: int = None):
@@ -74,20 +90,26 @@ def socket_test(ip: str, port: int):
         return 200
     else: return 404
     
-def await_client():
+async def await_client():
     '''Waits for client to connect.'''
     while True:
-        client, addr = local_socket.accept()
+        client, addr = await loop.sock_accept(local_socket)
         print(f'Connection from {addr} incoming. Accepting...')
-        create_child_process(client, Client(client, addr).login)
+        asyncio.create_task(handle_client(client, addr))
 
-def create_child_process(client: object, target, extra_args: any = None):
-    '''Creates a child process that has a target and returns something.'''
-    return Process(target=target, args=extra_args)
+async def handle_client(client, addr):
+    '''Handle a single client connection.'''
+    c = Client(client, addr)
+    await c.login()
+    user_list.append(c)
+    print(c)
+    print(user_list)
+    
+user_list: list[Client] = []
+
     
 if __name__ == '__main__':
     
-
     code_to_str(int(server_setup()))
     print('Awaiting connections...')
-    await_client()
+    loop.run_until_complete(await_client())

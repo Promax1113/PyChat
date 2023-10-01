@@ -1,7 +1,9 @@
-from socket import socket
+import socket, json, getpass
+from fernet import Fernet
 from typing import Final
+from time import sleep
 
-c = socket()
+c = socket.socket()
 BUFSIZE: Final[int] = 8192
 
 
@@ -12,21 +14,33 @@ def code_to_str(code: int) -> None:
 
 def connect(ip: str, port: int):
     global c
-    print('Testing socket...')
-    test_sock = socket()
-    test_sock.bind(('127.0.0.1', 6005))
-    test_sock.listen()
-    c.connect(('127.0.0.1', 6005))
-    c.sendall(('200').encode())
-    data = test_sock.recv(BUFSIZE).decode()
-    code_to_str(int(data))
-    test_sock.close()
-    print('Error occurred! Exiting...')
-    exit(1)
-    c.connect(ip, port)
+    tries = 0
+
+    try:
+        c.connect((ip, port))
+        print(f'Connected to {ip}:{port} successfully.')
+        login()
+    except ConnectionRefusedError:
+        if tries <= 10:
+            print('Host possibly offline, now retrying...')
+            tries += 1
+            sleep(2)
+            connect(ip, port)
+
+        else:
+            print('Retried 10 times, no response. Quitting...')
+            exit(1)
+
+
 
 def login():
     global c
+    sec = json.loads(c.recv(BUFSIZE).decode())
+    print('Received!')
+    key = Fernet(sec['sec'].encode())
+    c.sendall(key.encrypt(json.dumps({'username': input('Username: '), 'password': getpass.getpass()}).encode()))
+    print(f"\n{c.recv(BUFSIZE).decode()}\n")
+
 
 
 if __name__ == '__main__':
