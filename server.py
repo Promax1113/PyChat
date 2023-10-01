@@ -35,7 +35,7 @@ class Client:
         
 local_socket = socket()
 # local_socket.settimeout(5)
-BUFSIZE: Final[int] = 4096
+BUFSIZE: Final[int] = 8192
 
 
 def code_to_str(code: int) -> None:
@@ -53,7 +53,7 @@ def server_setup(ip: str = None, port: int = None):
         data = dict(config.items('DEFAULT'))
         return socket_test(data['address'], int(data['port']))
     else:
-        return 404
+        raise FileNotFoundError('/server_data/configs/default.ini not found.')
             
 def socket_test(ip: str, port: int):
     '''Tests sockets before using them.'''
@@ -79,11 +79,11 @@ def await_client():
     while True:
         client, addr = local_socket.accept()
         print(f'Connection from {addr} incoming. Accepting...')
-        create_child_process(client, Client(client, addr).login())
+        create_child_process(client, Client(client, addr).login)
 
-def create_child_process(client: object, target: function, extra_args: any = None):
+def create_child_process(client: object, target, extra_args: any = None):
     '''Creates a child process that has a target and returns something.'''
-    Process(target=target, args=extra_args)
+    return Process(target=target, args=extra_args)
     
 if __name__ == '__main__':
     
