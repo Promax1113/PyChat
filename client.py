@@ -50,4 +50,4 @@ def login():
 
 
 if __name__ == '__main__':
-    connect('192.168.1.50', 585)
+    connect('localhost', 585)

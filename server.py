@@ -28,9 +28,9 @@ class Client:
         print('Sent key!')
         data = await loop.sock_recv(self.__client, BUFSIZE)
         user_data = json.loads(self.__fernet_obj.decrypt(data)) # Login details in dict.
+        self.__username = user_data['username']
         login_result = security.pass_check(user_data['username'], user_data['password'])
         await loop.sock_sendall(self.__client, code_to_str(login_result, print_o=False).encode())
-        print('sent!')
         if login_result == 200:
             self.__is_authed = True
             return None
@@ -45,7 +45,9 @@ class Client:
         while not data:
             data = await loop.sock_recv(self.__client, BUFSIZE)
         return data
-
+    
+    def get_info(self):
+        return {'username': self.__username}
         
 local_socket = socket()
 # local_socket.settimeout(5)
@@ -104,8 +106,8 @@ async def handle_client(client, addr):
     c = Client(client, addr)
     await c.login()
     user_list.append(c)
-    print(c)
-    print(user_list)
+    username_list = [username.get_info()['username'] for username in user_list]
+    print(username_list)
     
 user_list: list[Client] = []
 
