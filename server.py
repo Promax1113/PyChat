@@ -21,6 +21,7 @@ class Client:
 
     async def login(self):
         '''Processes the login of the client.'''
+        print('Started Login...')
         self.__key = Fernet.generate_key().decode()
         self.__fernet_obj = Fernet(self.__key.encode())
         await loop.sock_sendall(self.__client, json.dumps({'sec': self.__key}).encode())

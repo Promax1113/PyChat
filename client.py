@@ -40,6 +40,7 @@ def connect(ip: str, port: int):
 
 def login():
     global c
+    print('Receiving!')
     sec = json.loads(c.recv(BUFSIZE).decode())
     print('Received!')
     key = Fernet(sec['sec'].encode())
@@ -49,4 +50,4 @@ def login():
 
 
 if __name__ == '__main__':
-    connect('localhost', 585)
+    connect('192.168.1.50', 585)
