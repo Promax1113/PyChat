@@ -1,21 +1,30 @@
-import socket, json, getpass
-from fernet import Fernet
-from typing import Final
+import getpass
+import json
+import socket
 from time import sleep
+from typing import Final
+
+from fernet import Fernet
 
 c = socket.socket()
 BUFSIZE: Final[int] = 8192
 
+
 def receive():
     pass
+
+
 def send():
     pass
 
 
 def code_to_str(code: int) -> None:
-    '''Converts http code to letters.'''
-    if code == 200: print('Successfully set up server!')
-    else: print('Error!')
+    """Converts http code to letters."""
+    if code == 200:
+        print('Successfully set up server!')
+    else:
+        print('Error!')
+
 
 def connect(ip: str, port: int):
     global c
@@ -37,7 +46,6 @@ def connect(ip: str, port: int):
             exit(1)
 
 
-
 def login():
     global c
     print('Receiving!')
@@ -47,6 +55,12 @@ def login():
     c.sendall(key.encrypt(json.dumps({'username': input('Username: '), 'password': getpass.getpass()}).encode()))
     print(f"\n{c.recv(BUFSIZE).decode()}\n")
 
+
+def await_commands():
+    command_list = eval(c.recv(BUFSIZE).decode())
+    print(f"Available commands: {command_list}")
+    choice = int(input('Choose one: '))
+    c.sendall(command_list[choice].encode())
 
 
 if __name__ == '__main__':

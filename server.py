@@ -1,18 +1,19 @@
-from socket import socket
-import os, json, security, time
-from fernet import Fernet
-from multiprocessing import Process
 import asyncio
-from server_data import read_csv, save_csv
-from typing import Final
+import json
+import os
+import security
 from configparser import RawConfigParser
+from socket import socket
+from typing import Final
+
+from fernet import Fernet
 
 loop = asyncio.get_event_loop()
 
 
 class Client:
     def __init__(self, client: socket, address: tuple) -> None:
-        self.__username =  None
+        self.__username = None
         self.__client: socket = client
         self.__address: tuple = address
         self.__key: str = None
@@ -20,14 +21,14 @@ class Client:
         self.__fernet_obj: Fernet = None
 
     async def login(self):
-        '''Processes the login of the client.'''
+        """Processes the login of the client."""
         print('Started Login...')
         self.__key = Fernet.generate_key().decode()
         self.__fernet_obj = Fernet(self.__key.encode())
         await loop.sock_sendall(self.__client, json.dumps({'sec': self.__key}).encode())
         print('Sent key!')
         data = await loop.sock_recv(self.__client, BUFSIZE)
-        user_data = json.loads(self.__fernet_obj.decrypt(data)) # Login details in dict.
+        user_data = json.loads(self.__fernet_obj.decrypt(data))  # Login details in dict.
         self.__username = user_data['username']
         login_result = security.pass_check(user_data['username'], user_data['password'])
         await loop.sock_sendall(self.__client, code_to_str(login_result, print_o=False).encode())
@@ -40,33 +41,43 @@ class Client:
 
         await asyncio.sleep(1)
 
-    async def receive(self, decode):
-        data = None
-        while not data:
-            data = await loop.sock_recv(self.__client, BUFSIZE)
-        return data
-    
+    async def receive(self, decode: bool = True):
+        if decode:
+            return await loop.sock_recv(self.__client, BUFSIZE).decode()
+        else:
+            return await loop.sock_recv(self.__client, BUFSIZE)
+
+    async def send(self, data, encode: bool = True):
+        if encode:
+            await loop.sock_sendall(self.__client, data).encode()
+        else:
+            await loop.sock_sendall(self.__client, data)
+
     def get_info(self):
         return {'username': self.__username}
-        
+
+
 local_socket = socket()
-# local_socket.settimeout(5)
 BUFSIZE: Final[int] = 8192
 
 
-def code_to_str(code: int, print_o = True):
-    '''Converts http code to letters.'''
-    if print == True:
-        if code == 200: print('Success!')
-        else: print('Error!')
+def code_to_str(code: int, print_o=True):
+    """Converts http code to letters."""
+    if print:
+        if code == 200:
+            print('Success!')
+        else:
+            print('Error!')
     else:
-        if code == 200: return 'Success!'
-        else: return 'Error!'
+        if code == 200:
+            return 'Success!'
+        else:
+            return 'Error!'
 
 
 def server_setup(ip: str = None, port: int = None):
-    '''Setup for the the server'''
-    
+    """Setup for the server."""
+
     if os.path.isfile(f'{os.getcwd()}/server_data/configs/default.ini'):
         config = RawConfigParser()
         config.read(f"{os.getcwd()}/server_data/configs/default.ini")
@@ -74,9 +85,10 @@ def server_setup(ip: str = None, port: int = None):
         return socket_test(data['address'], int(data['port']))
     else:
         raise FileNotFoundError('/server_data/configs/default.ini not found.')
-            
+
+
 def socket_test(ip: str, port: int):
-    '''Tests sockets before using them.'''
+    """Tests sockets before using them."""
     global local_socket
     local_socket.bind((ip, port))
     local_socket.listen(5)
@@ -84,7 +96,7 @@ def socket_test(ip: str, port: int):
     test_s = socket()
     test_s.connect((ip, port))
     client, addr = local_socket.accept()
-    data_to_send = ("200").encode()
+    data_to_send = "200".encode()
     test_s.sendall(data_to_send)
     test_data = client.recv(BUFSIZE).decode()
     client.close()
@@ -92,28 +104,49 @@ def socket_test(ip: str, port: int):
     if test_data == '200':
         print(f'\nServing on {ip}:{port}\n')
         return 200
-    else: return 404
-    
+    else:
+        return 404
+
+
 async def await_client():
-    '''Waits for client to connect.'''
+    """Waits for a client to connect."""
     while True:
         client, addr = await loop.sock_accept(local_socket)
         print(f'Connection from {addr} incoming. Accepting...')
         asyncio.create_task(handle_client(client, addr))
 
+
 async def handle_client(client, addr):
-    '''Handle a single client connection.'''
+    """Handle a single client connection."""
     c = Client(client, addr)
     await c.login()
     user_list.append(c)
     username_list = [username.get_info()['username'] for username in user_list]
-    print(username_list)
-    
+    await handle_command(c)
+
+
+async def send_message_callback(c: Client):
+    pass
+
+
+async def read_message_callaback(c: Client):
+    pass
+
+
+async def handle_command(c: Client):
+    command_list = ['send_message', 'read_message']
+    await c.send(str(command_list), encode=True)
+    choice = await c.receive()
+    match command_list[choice]:
+        case 'send_message':
+            send_message_callback(c)
+        case 'read_message':
+            read_message_callaback(c)
+
+
 user_list: list[Client] = []
 
-    
 if __name__ == '__main__':
-    
     code_to_str(int(server_setup()))
     print('Awaiting connections...')
     loop.run_until_complete(await_client())
