@@ -1,8 +1,10 @@
 import hashlib, os
 
 def pass_check(username, password):
+    password = password.encode()
     if not os.path.isfile(f"{os.getcwd()}/user_data/{username}.hash"):
-        os.mkdir(f"{os.getcwd()}/user_data/")
+        if not os.path.isdir(f"{os.getcwd()}/user_data/"):
+            os.mkdir(f"{os.getcwd()}/user_data/")
         with open(f"{os.getcwd()}/user_data/{username}.hash", 'w') as f:
             f.write(hashlib.sha256(password).hexdigest())
             f.close()
