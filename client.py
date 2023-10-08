@@ -64,6 +64,7 @@ def await_commands():
     except IndexError:
         print('Index out of list!')
     form = json.loads(c.recv(BUFSIZE).decode())
+    # Make it better, support group-chats add offline message queue for when message is sent but user not online.
     match form['mode']:
         case 'send':
             form['recipient'] = input('Recipient: ')
