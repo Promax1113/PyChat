@@ -59,6 +59,7 @@ class Client:
 
 local_socket = socket()
 BUFSIZE: Final[int] = 8192
+username_list: list[str] = []
 
 
 def code_to_str(code: int, print_o=True):
@@ -118,6 +119,7 @@ async def await_client():
 
 async def handle_client(client, addr):
     """Handle a single client connection."""
+    global username_list
     c = Client(client, addr)
     await c.login()
     user_list.append(c)
@@ -127,12 +129,16 @@ async def handle_client(client, addr):
 
 async def send_message_callback(c: Client):
     # TODO Make it send a form w/ the recipient
-    print('Received!')
-    return 200
+    await c.send(json.dumps({'mode': 'send', 'message': None, 'recipient': None, 'author': c.get_info()['username']}))
+    message = json.loads(await c.receive())
+    print(username_list)
+    for username in username_list:
+        if username == message['recipient']:
+            await user_list[username_list.index(username)].send(json.dumps(message))
 
 
 async def read_message_callaback(c: Client):
-    pass
+    await c.send(json.dumps({'mode': 'read'}))
 
 
 async def handle_command(c: Client):

@@ -60,9 +60,19 @@ def await_commands():
     print(f"Available commands: {command_list}")
     choice = int(input('Choose one: '))
     try:
-        c.sendall(command_list[choice-1].encode())
+        c.sendall(command_list[choice - 1].encode())
     except IndexError:
         print('Index out of list!')
+    form = json.loads(c.recv(BUFSIZE).decode())
+    match form['mode']:
+        case 'send':
+            form['recipient'] = input('Recipient: ')
+            form['message'] = input('Message: ')
+            c.sendall(json.dumps(form).encode())
+        case 'read':
+            message = json.loads(c.recv(BUFSIZE).decode())
+            print(f"From {message['recipient']} Message: {message['message']}")
+
 
 if __name__ == '__main__':
     connect('localhost', 585)
