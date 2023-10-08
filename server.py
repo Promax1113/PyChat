@@ -1,12 +1,13 @@
 import asyncio
 import json
 import os
-import security
 from configparser import RawConfigParser
 from socket import socket
 from typing import Final
 
 from fernet import Fernet
+
+import security
 
 loop = asyncio.get_event_loop()
 
@@ -22,11 +23,9 @@ class Client:
 
     async def login(self):
         """Processes the login of the client."""
-        print('Started Login...')
         self.__key = Fernet.generate_key().decode()
         self.__fernet_obj = Fernet(self.__key.encode())
         await loop.sock_sendall(self.__client, json.dumps({'sec': self.__key}).encode())
-        print('Sent key!')
         data = await loop.sock_recv(self.__client, BUFSIZE)
         user_data = json.loads(self.__fernet_obj.decrypt(data))  # Login details in dict.
         self.__username = user_data['username']
@@ -43,13 +42,14 @@ class Client:
 
     async def receive(self, decode: bool = True):
         if decode:
-            return await loop.sock_recv(self.__client, BUFSIZE).decode()
+            data = await loop.sock_recv(self.__client, BUFSIZE)
+            return data.decode()
         else:
-            return await loop.sock_recv(self.__client, BUFSIZE)
+            data = await loop.sock_recv(self.__client, BUFSIZE)
 
     async def send(self, data, encode: bool = True):
         if encode:
-            await loop.sock_sendall(self.__client, data).encode()
+            await loop.sock_sendall(self.__client, data.encode())
         else:
             await loop.sock_sendall(self.__client, data)
 
@@ -63,7 +63,7 @@ BUFSIZE: Final[int] = 8192
 
 def code_to_str(code: int, print_o=True):
     """Converts http code to letters."""
-    if print:
+    if print_o:
         if code == 200:
             print('Success!')
         else:
@@ -126,7 +126,9 @@ async def handle_client(client, addr):
 
 
 async def send_message_callback(c: Client):
-    pass
+    # TODO Make it send a form w/ the recipient
+    print('Received!')
+    return 200
 
 
 async def read_message_callaback(c: Client):
@@ -137,11 +139,11 @@ async def handle_command(c: Client):
     command_list = ['send_message', 'read_message']
     await c.send(str(command_list), encode=True)
     choice = await c.receive()
-    match command_list[choice]:
+    match choice:
         case 'send_message':
-            send_message_callback(c)
+            await send_message_callback(c)
         case 'read_message':
-            read_message_callaback(c)
+            await read_message_callaback(c)
 
 
 user_list: list[Client] = []

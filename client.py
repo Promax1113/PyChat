@@ -21,7 +21,7 @@ def send():
 def code_to_str(code: int) -> None:
     """Converts http code to letters."""
     if code == 200:
-        print('Successfully set up server!')
+        print('Successful!')
     else:
         print('Error!')
 
@@ -48,20 +48,21 @@ def connect(ip: str, port: int):
 
 def login():
     global c
-    print('Receiving!')
     sec = json.loads(c.recv(BUFSIZE).decode())
-    print('Received!')
     key = Fernet(sec['sec'].encode())
     c.sendall(key.encrypt(json.dumps({'username': input('Username: '), 'password': getpass.getpass()}).encode()))
     print(f"\n{c.recv(BUFSIZE).decode()}\n")
+    await_commands()
 
 
 def await_commands():
     command_list = eval(c.recv(BUFSIZE).decode())
     print(f"Available commands: {command_list}")
     choice = int(input('Choose one: '))
-    c.sendall(command_list[choice].encode())
-
+    try:
+        c.sendall(command_list[choice-1].encode())
+    except IndexError:
+        print('Index out of list!')
 
 if __name__ == '__main__':
     connect('localhost', 585)
