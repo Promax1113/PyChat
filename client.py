@@ -33,7 +33,7 @@ def connect(ip: str, port: int):
     try:
         c.connect((ip, port))
         print(f'Connected to {ip}:{port} successfully.')
-        login()
+        return login()
     except ConnectionRefusedError:
         if tries <= 10:
             print('Host probably offline, now retrying...')
@@ -52,11 +52,14 @@ def login():
     key = Fernet(sec['sec'].encode())
     c.sendall(key.encrypt(json.dumps({'username': input('Username: '), 'password': getpass.getpass()}).encode()))
     print(f"\n{c.recv(BUFSIZE).decode()}\n")
-    await_commands()
+    return await_commands()
 
 
-def await_commands():
-    command_list = eval(c.recv(BUFSIZE).decode())
+def await_commands(cmd_list: list = None):
+    if not cmd_list:
+        command_list = eval(c.recv(BUFSIZE).decode())
+    else:
+        command_list = cmd_list
     print(f"Available commands: {command_list}")
     choice = int(input('Choose one: '))
     try:
@@ -72,8 +75,11 @@ def await_commands():
             c.sendall(json.dumps(form).encode())
         case 'read':
             message = json.loads(c.recv(BUFSIZE).decode())
-            print(f"From {message['recipient']} Message: {message['message']}")
-
+            #print(f"From {message['recipient']} Message: {message['message']}")
+            print(message)
+    return command_list
 
 if __name__ == '__main__':
-    connect('localhost', 585)
+    command_list = connect('localhost', 585)
+    while True:
+        await_commands(command_list)
