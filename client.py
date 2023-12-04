@@ -6,12 +6,25 @@ from typing import Final
 
 from fernet import Fernet
 
-c = socket.socket()
-BUFSIZE: Final[int] = 8192
+c = socket.socket(socket.AF_INET, proto=socket.IPPROTO_TCP)
+BUFSIZE: Final[int] = 4096
 
 
-def receive():
-    pass
+def receive(decode: bool = True):
+    """
+    This function is used to receive data.
+    It takes one arg.
+        - Decode -> defaults to True
+    """
+    global c
+    data = c.recv(BUFSIZE)
+    old_data = data
+    
+
+    if decode is True:
+        return data.decode()
+    else:
+        return data
 
 
 def send():
@@ -33,7 +46,7 @@ def connect(ip: str, port: int):
     try:
         c.connect((ip, port))
         print(f'Connected to {ip}:{port} successfully.')
-        return login()
+        login()
     except ConnectionRefusedError:
         if tries <= 10:
             print('Host probably offline, now retrying...')
@@ -48,25 +61,32 @@ def connect(ip: str, port: int):
 
 def login():
     global c
-    sec = json.loads(c.recv(BUFSIZE).decode())
+    sec = json.loads(receive())
     key = Fernet(sec['sec'].encode())
     c.sendall(key.encrypt(json.dumps({'username': input('Username: '), 'password': getpass.getpass()}).encode()))
-    print(f"\n{c.recv(BUFSIZE).decode()}\n")
-    return await_commands()
+    status = receive()
+    if status == "Error":
+        exit(1)
+    print(f"\n{status}\n")
+    await_commands()
 
 
-def await_commands(cmd_list: list = None):
-    if not cmd_list:
-        command_list = eval(c.recv(BUFSIZE).decode())
-    else:
-        command_list = cmd_list
-    print(f"Available commands: {command_list}")
+def await_commands():
+
+    command_list = eval(receive())
+
+    print(f"Available commands")
+    index = 1
+    for  item in command_list:
+        print(f"{index}. {item}")
+        index += 1
     choice = int(input('Choose one: '))
     try:
         c.sendall(command_list[choice - 1].encode())
     except IndexError:
         print('Index out of list!')
-    form = json.loads(c.recv(BUFSIZE).decode())
+    act_form = receive()
+    form = json.loads(act_form)
     # Make it better, support group-chats add offline message queue for when message is sent but user not online.
     match form['mode']:
         case 'send':
@@ -74,12 +94,16 @@ def await_commands(cmd_list: list = None):
             form['message'] = input('Message: ')
             c.sendall(json.dumps(form).encode())
         case 'read':
-            message = json.loads(c.recv(BUFSIZE).decode())
-            #print(f"From {message['recipient']} Message: {message['message']}")
-            print(message)
-    return command_list
+            data = ''
+            while not data:
+                data = receive()
+                print(data)
+
+            message = json.loads(data)
+            print(f"From user: {message['recipient']} Message: {message['message']}")
+
 
 if __name__ == '__main__':
-    command_list = connect('localhost', 585)
+    connect('localhost', 585)
     while True:
-        await_commands(command_list)
+        await_commands()
